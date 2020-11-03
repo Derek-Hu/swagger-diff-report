@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en" style="font-size: 50px;">
+
+<head>
+  <meta charset="UTF-8">
+  <title>
+    <%= reportTitle?reportTitle:"Swagger更新检测报告" %>
+  </title>
+  <style>
+    body {
+      font-size: 15px;
+      max-width: 1300px;
+      font-family: proxima-nova, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Wenquanyi Micro Hei, WenQuanYi Micro Hei Mono, WenQuanYi Zen Hei, Apple LiGothic Medium, SimHei, ST Heiti, WenQuanYi Zen Hei Sharp;
+      margin: 10px auto;
+      color: #666;
+      border: 1px solid #aaa;
+      padding: 10px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 18px;
+      color: #333;
+    }
+
+    pre.diff {
+      margin: 0;
+      padding: 0;
+    }
+
+    pre span.line {
+      position: absolute;
+      left: -2.5em;
+    }
+
+    pre span.row.red .indicator {
+      color: red;
+    }
+
+    pre span.row.green .indicator {
+      color: green;
+    }
+
+    pre span.row {
+      margin: 0;
+      padding: 0;
+      display: inline-block;
+      width: 100%;
+      position: relative;
+    }
+
+    pre {
+      background: #fff;
+      border: 1px solid;
+      font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, Courier, monospace;
+    }
+
+    code {
+      display: block;
+      background-color: #000;
+      padding: 0.5em 3em;
+    }
+
+    code,
+    pre {
+      color: #aaa;
+    }
+
+    code.add {
+      color: #FFF;
+    }
+
+    .title {
+      font-weight: bold;
+    }
+
+    div.update .title {
+      color: #0f6ab4;
+    }
+
+    div.remove .title {
+      color: red;
+    }
+
+    div.add .title {
+      color: green;
+    }
+
+    p.controller {
+      color: #000;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    p.controller a {
+      color: #000;
+    }
+
+    p.controller a span {
+      color: #999;
+    }
+
+    a {
+      text-decoration: none;
+      color: green;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    li {
+      margin: 15px 0;
+    }
+
+    span.type {
+      color: #FFF;
+      position: relative;
+      left: 5px;
+    }
+
+    span.type,
+    .detail {
+      padding: 4px;
+    }
+
+    span.type.add {
+      background-color: #10a54a;
+      border: 1px solid #10a54a;
+    }
+
+    span.type.update {
+      background-color: #0f6ab4;
+      border: 1px solid #0f6ab4;
+    }
+
+    span.type.remove {
+      background-color: red;
+      border: 1px solid red;
+    }
+
+    .detail.add {
+      background-color: #e7f6ec;
+      border: 1px solid #c3e8d1;
+      color: #000;
+    }
+
+    .detail.remove {
+      background-color: #f5d9d9;
+      border: 1px solid #f5d9d9;
+    }
+
+    .detail.update {
+      color: #000;
+      background-color: #e7f0f7;
+      border: 1px solid #c3d9ec;
+    }
+
+    .reportSummary {
+      text-align: right;
+      font-size: 13px;
+    }
+
+    .reportSummary,
+    .reportSummary a {
+      color: #999;
+    }
+
+    .reportSummary p {
+      margin: 5px;
+    }
+
+    .reportSummary>div {
+      display: inline-block
+    }
+  </style>
+  <!-- https://www.npmjs.com/package/diff -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/4.0.1/diff.min.js"></script>
+  <script>
+    function diffSchema(one, other) {
+
+      var diff = window.Diff.diffJson(one, other),
+        fragment = [];
+
+      var count = 1;
+      diff.forEach(function (part) {
+        var color = part.added ? 'green' :
+          part.removed ? 'red' : 'grey';
+        var indicator = part.added ? '+' :
+          part.removed ? '-' : '&nbsp;';
+        var datas = showCodeLine(part.value.split(/\n/), color, indicator, count);
+        count = datas.count;
+        fragment.push(datas.data);
+      });
+      return fragment.join('');
+    }
+    function showCodeLine(lines, color, indicator, count) {
+      if (!count) {
+        count = 1;
+      }
+      var decorateLines = [];
+      for (var i = 0, len = lines.length; i < len; i++) {
+        var data = '<span style="color:' + color + '">' + lines[i] + '</span>';
+        if (lines[i]) {
+          decorateLines.push('<span class="row ' + (color) + '"><span class="line">' + count++ + '</span><span class="indicator">' + indicator + '&nbsp;</span>' + data + "</span>")
+        } else {
+          decorateLines.push('')
+        }
+      }
+      return {
+        count: count,
+        data: decorateLines.join('\n')
+      };
+    }
+    function outDiffMessage(oldV, newV) {
+      var isOldArray = Object.prototype.toString.call(oldV) === '[object Array]';
+      var isOldObject = Object.prototype.toString.call(oldV) === '[object Object]';
+
+      var isNewArray = Object.prototype.toString.call(oldV) === '[object Array]';
+      var isNewObject = Object.prototype.toString.call(oldV) === '[object Object]';
+      if (isNewArray || isNewObject || isOldArray || isOldObject) {
+        if (oldV && newV) {
+          return diffSchema(oldV, newV);
+        } else if (oldV) {
+          return showCodeLine(JSON.stringify(oldV, null, 2).split('\n'), 'red', '-').data;
+        } else if (newV) {
+          return showCodeLine(JSON.stringify(newV, null, 2).split('\n'), 'green', '+').data;
+        }
+      }
+    }
+  </script>
+
+</head>
+
+<body>
+  <h1>
+    <%= reportTitle?reportTitle:"Swagger更新检测报告" %>
+  </h1>
+  <div class="reportSummary">
+    <div>
+      <% if(externalLinkBase){%>
+      <p>
+        <span>Swagger地址：</span>
+        <a href="<%= externalLinkBase %>" target="_blank">
+          <%= externalLinkBase %>
+        </a>
+      </p>
+      <%}%>
+    </div>
+  </div>
+  <ol class="controller">
+    <% if(basicChanges && basicChanges.length){
+    %>
+    <li>
+      <div>Swagger文档更新：</div>
+      <ul>
+        <% basicChanges.forEach(function(change){ %>
+        <li>
+          <% if(change.name==='swagger') {%>
+          <p>文档版本：由【
+            <%= change.oldV %> 】版本升级为【
+            <%= change.newV %> 】版本</p>
+          <%} %>
+          <% if(change.name==='basePath') {%>
+          <p>API根路径：由【
+            <%= change.oldV %> 】更新至【
+            <%= change.newV %> 】</p>
+          <%} %>
+        </li>
+        <% }); %>
+      </ul>
+    </li>
+    <%
+    } %>
+    <% apiChanges && Object.keys(apiChanges).forEach(function(controllerName){ %>
+    <li>
+      <div>
+        <p class="controller">
+          <% if(externalLinkBase){ %>
+          <a href="<%=externalLinkBase %>#!/<%=controllerName %>">
+            <%= controllerName %>
+            <span>
+              <%= apiChanges[controllerName][0] && apiChanges[controllerName][0].tagName%>
+            </span>
+          </a>
+          <%
+          }else{
+          %>
+          <%= controllerName %>
+          <span>
+            <%= apiChanges[controllerName][0].tagName%>
+          </span>
+          <%}%>
+        </p>
+        <ul>
+          <% if(tagChanges && tagChanges[controllerName] && tagChanges[controllerName].type==='update'){ %>
+          <li>
+            更新描述信息：由
+            【
+            <%=tagChanges[controllerName].oldV %> 】更新至
+            【
+            <%=tagChanges[controllerName].newV %> 】
+          </li>
+          <% } %>
+          <% apiChanges[controllerName].forEach(function(change){
+            if(change.type==='add'){
+          %>
+          <li>
+            <span class="type add">新增</span>
+            <% if(externalLinkBase){ %>
+            <a class="detail link add" href="<%=externalLinkBase %>#!/<%=controllerName + '/'+change.definition.operationId %>">
+              <span>
+                <%= change.method.toUpperCase() +' '+ change.url + ' ' + change.definition.summary%>
+              </span>
+            </a>
+            <% }else{ %>
+            <span class="detail add">
+              <%= change.method.toUpperCase() +' '+ change.url +' '+ change.definition.summary %>
+            </span>
+            <% } %>
+          </li>
+          <%
+            } else if(change.type==='remove'){
+          %>
+          <li>
+            <span class="type remove">删除</span>
+            <span class="detail remove">
+              <%= change.method.toUpperCase() +' '+ change.url +' '+ change.definition.summary %>
+            </span>
+          </li>
+          <%
+            } else if(change.type==='update'){
+          %>
+          <li>
+            <span class="type update">更新</span>
+            <% if(externalLinkBase){ %>
+            <a class="link detail update" href="<%=externalLinkBase %>#!/<%=controllerName + '/'+change.definition.operationId %>">
+              <span>
+                <%= change.method.toUpperCase() +' '+ change.url + ' '+ change.definition.summary%>
+              </span>
+            </a>
+            <%
+              }else{
+            %>
+            <span class="detail update">
+              <%= change.method.toUpperCase() +' '+ change.url +' '+ change.definition.summary %>
+            </span>
+            <% } %>
+            <ul>
+              <% if(change.params){ %>
+              <li>
+                <p>接口变动：</p>
+                <ul>
+                  <%  change.params.forEach(function(pc){
+                    if(pc.type==='add'){
+                  %>
+                  <li>
+                    <div class="add">
+                      <span class="title">新增【
+                        <%= pc.label + ' 】：'+ pc.definition %>
+                      </span>
+                    </div>
+                  </li>
+                  <%
+                    }
+                    if(pc.type==='remove'){
+                  %>
+                  <li>
+                    <div class="remove">
+                      <span class="title">删除【
+                        <%= pc.label %> 】
+                      </span>
+                      <span>，原值为：【
+                        <%= pc.definition %> 】
+                      </span>
+                    </div>
+                  </li>
+                  <%
+                    }
+                    if(pc.type==='update'){
+                  %>
+                  <li>
+                    <div class="update">
+                      <span class="title">更新【
+                        <%= pc.label %> 】：</span>
+                      <span>由【
+                        <%= pc.oldV%> 】更新至【
+                        <%= pc.newV%> 】
+                      </span>
+                    </div>
+                  </li>
+                  <%
+                    }
+                  })
+                %>
+                </ul>
+              </li>
+              <%
+                }
+                if(change.reqParams && change.reqParams.length){
+              %>
+              <li>
+                <p>请求参数变动：</p>
+                <ul>
+                  <% change.reqParams.forEach(function(pc){
+                    if(pc.type==='add'){
+                  %>
+                  <li>
+                    <div class="add">
+                      <% if(pc.attr){
+                      %>
+                      <span class="title">
+                        <%= (pc.definition.required?'必填参数':'选填参数')+ '【 '+pc.name +' 】' %></span>新增属性
+                      【
+                      <%= pc.attr+' 】' %>
+                      <% if(Object.prototype.toString.call(pc.definition[pc.attr])==='[object Array]' || Object.prototype.toString.call(pc.definition[pc.attr])==='[object Object]'){
+                        
+                      %>
+                      <pre class="diff"><code><script>document.write(showCodeLine(
+                          JSON.stringify(JSON.parse('<%- JSON.stringify(pc.definition[pc.attr]) %>'), null, 2).split('\n'),
+                          'green', '+'
+                        ).data);
+                      </script></code></pre>
+                      <%
+                      } else{%>
+                      <%= '：'+pc.definition[pc.attr] %>
+                      <%
+                    }
+                  }else {%>
+                      <span class="title">新增&nbsp;
+                        <%= (pc.definition.required?'必填参数':'选填参数')+ '【 '+pc.name +' 】' %></span><span>
+                        <%= pc.definition.description+'，参数位置为【 '+pc.definition.in+' 】，类型为【 '+pc.definition.type+' 】' %>
+                        <%
+                      }
+                      %>
+                    </div>
+                  </li>
+                  <%
+                    }
+                    if(pc.type==='remove'){
+                  %>
+                  <li>
+                    <div class="remove">
+                      <% if(pc.attr){
+                                            %>
+                      <span class="title">
+                        <%= (pc.definition.required?'必填参数':'选填参数')+ '【 '+pc.name +' 】' %></span><span>删除属性
+                        【
+                        <%= pc.attr+' 】'%>
+                        <%
+                        } else {
+                        %>
+                        <span class="title">删除&nbsp;
+                          <%= (pc.definition.required?'必填参数':'选填参数')+ '【 '+pc.name +' 】'+pc.definition.description%>：</span>
+                        <span>
+                          <%= '参数位置为【 '+pc.definition.in+' 】，类型为【 '+pc.definition.type+' 】'  %></span>
+                        <%
+                        }
+                        %>
+                    </div>
+                  </li>
+                  <%
+                    }
+                    if(pc.type==='update' && (!pc.causedBy || pc.causedBy.indexOf('#')!==0)){
+                  %>
+                  <li>
+                    <div class="update">
+                      <span class="title">更新【
+                        <%= pc.name+pc.label %> 】：
+                      </span>
+                      <% if(Object.prototype.toString.call(pc.oldV) === '[object Array]' 
+                      || Object.prototype.toString.call(pc.oldV) === '[object Object]'
+                      || Object.prototype.toString.call(pc.newV) === '[object Array]'
+                      || Object.prototype.toString.call(pc.newV) === '[object Object]'){
+
+                      %>
+                      <pre class="diff"><code><script>document.write(outDiffMessage(
+                          JSON.parse('<%- JSON.stringify(pc.oldV) %>'),
+                          JSON.parse('<%- JSON.stringify(pc.newV) %>'),
+                        ));
+                      </script></code></pre>
+                      <%
+                      }else{
+                      %>
+                      <span>由【
+                        <%=pc.oldV %> 】更新至【
+                        <%=pc.newV %> 】</span>
+                      <%
+                      }
+                      %>
+                    </div>
+                  </li>
+                  <%
+                      }
+                      if(pc.type==='update' && pc.causedBy && pc.causedBy.indexOf('#')===0){
+
+                  %>
+                  <li>
+                    <div class="update">
+                      <span class="title">由于【
+                        <%= pc.causedBy %> 】存在更新</span><span>，导致参数
+                        <span style="color:red; font-weight: bold">
+                          <%= pc.effectedParams && (pc.effectedParams.length===1 ?pc.effectedParams[0]: pc.effectedParams.join('，')) %></span>数据结构发生变化</span>
+                      <div>
+                        <pre class="diff"><code><script>document.write(diffSchema(
+                            JSON.parse('<%- JSON.stringify(pc.oldV) %>'),
+                            JSON.parse('<%- JSON.stringify(pc.newV) %>')
+                          ));
+                        </script></code></pre>
+                      </div>
+                    </div>
+                  </li>
+                  <%
+                      }
+                  %>
+                  <%
+                    })
+                  %>
+                </ul>
+              </li>
+              <%
+              }
+              if(change.resParams && change.resParams.length){
+              %>
+              <li>
+                <p>响应数据结构变动：</p>
+                <ul>
+                  <% 
+                    change.resParams.forEach(function(pc){
+                      if(pc.type==='add'){
+                  %>
+                  <li>
+                    <div class="add">
+                      <span class="title">
+                        新增&nbsp;响应状态【
+                        <%= pc.name %> 】</span>
+                      <% if(pc.definition.description){ %>
+                      <span>，描述信息为：</span>【
+                      <%= pc.definition.description %> 】
+                      <%
+                      }
+                      %>
+                      <% if(pc.definition){ %>
+                      <p>详情为：</p>
+                      <div>
+                        <pre class="diff"><code><script>document.write(showCodeLine(
+                            JSON.stringify(JSON.parse('<%- JSON.stringify(pc.definition) %>'), null, 2).split('\n'),
+                            'green', '+'
+                          ).data);
+                        </script></code></pre>
+                      </div>
+                      <%
+                      }
+                      %>
+                    </div>
+                  </li>
+                  <%
+                    }
+                    if(pc.type==='remove'){
+                  %>
+                  <li>
+                    <div class="remove"><span class="title">删除&nbsp;响应状态【
+                        <%= pc.name %> 】</span>
+                      <% if(pc.definition.description){ %>
+                      <span>，原描述信息为：</span>
+                      【
+                      <%= pc.definition.description %> 】
+                      <%
+                      }
+                      %>
+                      <% if(pc.definition){ %>
+                      <p>删除详情为：</p>
+                      <div>
+                        <pre class="diff"><code><script>document.write(showCodeLine(
+                            JSON.stringify(JSON.parse('<%- JSON.stringify(pc.definition) %>'), null, 2).split('\n'),
+                            'red', '-'
+                          ).data);
+                        </script></code></pre>
+                      </div>
+                      <%
+                      }
+                      %>
+                    </div>
+                  </li>
+                  <%
+                  }
+                  if(pc.type==='update' && (!pc.causedBy || pc.causedBy.indexOf('#')!==0)){
+                  %>
+                  <li>
+                    <div class="update">
+                      <span class="title">更新&nbsp;响应状态【
+                        <%= pc.name %> 】</span>
+                      <% if(pc.newV.description !== pc.oldV.description){ 
+                          if(pc.newV.description && !pc.oldV.description){
+                      %>
+                      <p>新增描述信息：
+                        <%= pc.newV.description %>
+                      </p>
+                      <%
+                          }else if(!pc.newV.description && pc.oldV.description){
+
+                      %>
+                      <p>删除描述信息：
+                        <%= pc.oldV.description %>
+                      </p>
+                      <%
+                          } else{
+
+                      %>
+                      <p>更新描述信息：由【
+                        <%= pc.oldV.description %> 】更新至【
+                        <%= pc.newV.description %> 】
+                      </p>
+                      <%
+                          }
+                      }
+                      %>
+                      <p>具体改动为：</p>
+                      <div>
+                        <pre class="diff"><code><script>document.write(diffSchema(
+                            JSON.parse('<%- JSON.stringify(pc.oldV) %>'),
+                            JSON.parse('<%- JSON.stringify(pc.newV) %>')
+                          ));
+                        </script></code></pre>
+                      </div>
+                    </div>
+                  </li>
+                  <%
+                    }
+
+                  if(pc.type==='update' && pc.causedBy && pc.causedBy.indexOf('#')===0){
+                  %>
+                  <li>
+                    <div class="update">
+                      <span class="title">更新&nbsp;响应状态【
+                        <%= pc.name %> 】</span><span>，由于数据结构
+                        【
+                        <%= pc.causedBy %> 】存在更新，导致此响应结构发生变化</span>
+                      <div>
+                        <pre class="diff"><code><script>document.write(diffSchema(
+                            JSON.parse('<%- JSON.stringify(pc.oldV) %>'),
+                            JSON.parse('<%- JSON.stringify(pc.newV) %>')
+                          ));
+                        </script></code></pre>
+                      </div>
+                      <%
+                        }
+                        })
+                      %>
+                    </div>
+                  </li>
+                </ul>
+              </li>
+              <%
+              }
+              %>
+
+            </ul>
+
+          </li>
+          <%
+              }
+            })%>
+        </ul>
+      </div>
+    </li>
+    <%}); %>
+  </ol>
+  <div class="reportSummary">
+    <div>
+      <p>
+        <a href="<%= url %>" target="_blank">
+          <%= url %>
+        </a>
+        <span>：Swagger配置</span>
+      </p>
+      <p>
+        <span>
+          <%= compareTime %>
+          ：本次比对时间
+        </span>
+      </p>
+    </div>
+  </div>
+</body>
+
+</html>

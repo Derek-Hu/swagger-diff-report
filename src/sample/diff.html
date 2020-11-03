@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en" style="font-size: 50px;">
+
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-size: 15px;
+      max-width: 1300px;
+      font-family: proxima-nova, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Wenquanyi Micro Hei, WenQuanYi Micro Hei Mono, WenQuanYi Zen Hei, Apple LiGothic Medium, SimHei, ST Heiti, WenQuanYi Zen Hei Sharp;
+      margin: 10px auto;
+      color: #666;
+      border: 1px solid #aaa;
+      padding: 10px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 18px;
+      color: #333;
+    }
+
+    pre.diff {
+      margin: 0;
+      padding: 0;
+    }
+
+    pre span.line {
+      position: absolute;
+      left: -2.5em;
+    }
+
+    pre span.row.red .indicator {
+      color: red;
+    }
+
+    pre span.row.green .indicator {
+      color: green;
+    }
+
+    pre span.row {
+      margin: 0;
+      padding: 0;
+      display: inline-block;
+      width: 100%;
+      position: relative;
+    }
+
+    pre {
+      background: #fff;
+      border: 1px solid;
+      font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, Courier, monospace;
+    }
+
+    code {
+      display: block;
+      background-color: #000;
+      padding: 0.5em 3em;
+    }
+
+    code,
+    pre {
+      color: #aaa;
+    }
+
+    code.add {
+      color: #FFF;
+    }
+
+    .title {
+      font-weight: bold;
+    }
+
+    div.update .title {
+      color: #0f6ab4;
+    }
+
+    div.remove .title {
+      color: red;
+    }
+
+    div.add .title {
+      color: green;
+    }
+
+    p.controller {
+      color: #000;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    p.controller a {
+      color: #000;
+    }
+
+    p.controller a span {
+      color: #999;
+    }
+
+    a {
+      text-decoration: none;
+      color: green;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    li {
+      margin: 15px 0;
+    }
+
+    span.type {
+      color: #FFF;
+      position: relative;
+      left: 5px;
+    }
+
+    span.type,
+    .detail {
+      padding: 4px;
+    }
+
+    span.type.add {
+      background-color: #10a54a;
+      border: 1px solid #10a54a;
+    }
+
+    span.type.update {
+      background-color: #0f6ab4;
+      border: 1px solid #0f6ab4;
+    }
+
+    span.type.remove {
+      background-color: red;
+      border: 1px solid red;
+    }
+
+    .detail.add {
+      background-color: #e7f6ec;
+      border: 1px solid #c3e8d1;
+      color: #000;
+    }
+
+    .detail.remove {
+      background-color: #f5d9d9;
+      border: 1px solid #f5d9d9;
+    }
+
+    .detail.update {
+      color: #000;
+      background-color: #e7f0f7;
+      border: 1px solid #c3d9ec;
+    }
+
+    .reportSummary {
+      text-align: right;
+      font-size: 13px;
+    }
+
+    .reportSummary,
+    .reportSummary a {
+      color: #999;
+    }
+
+    .reportSummary p {
+      margin: 5px;
+    }
+
+    .reportSummary>div {
+      display: inline-block
+    }
+  </style>
+  <!-- https://www.npmjs.com/package/diff -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/4.0.1/diff.min.js"></script>
+  <script>
+    function diffSchema(one, other) {
+
+      var diff = window.Diff.diffJson(one, other),
+        fragment = [];
+
+      var count = 1;
+      diff.forEach(function (part) {
+        var color = part.added ? 'green' :
+          part.removed ? 'red' : 'grey';
+        var indicator = part.added ? '+' :
+          part.removed ? '-' : '&nbsp;';
+        var datas = showCodeLine(part.value.split(/\n/), color, indicator, count);
+        count = datas.count;
+        fragment.push(datas.data);
+      });
+      return fragment.join('');
+    }
+    function showCodeLine(lines, color, indicator, count) {
+      if (!count) {
+        count = 1;
+      }
+      var decorateLines = [];
+      for (var i = 0, len = lines.length; i < len; i++) {
+        var data = '<span style="color:' + color + '">' + lines[i] + '</span>';
+        if (lines[i]) {
+          decorateLines.push('<span class="row ' + (color) + '"><span class="line">' + count++ + '</span><span class="indicator">' + indicator + '&nbsp;</span>' + data + "</span>")
+        } else {
+          decorateLines.push('')
+        }
+      }
+      return {
+        count: count,
+        data: decorateLines.join('\n')
+      };
+    }
+    function outDiffMessage(oldV, newV) {
+      var isOldArray = Object.prototype.toString.call(oldV) === '[object Array]';
+      var isOldObject = Object.prototype.toString.call(oldV) === '[object Object]';
+
+      var isNewArray = Object.prototype.toString.call(oldV) === '[object Array]';
+      var isNewObject = Object.prototype.toString.call(oldV) === '[object Object]';
+      if (isNewArray || isNewObject || isOldArray || isOldObject) {
+        if (oldV && newV) {
+          return diffSchema(oldV, newV);
+        } else if (oldV) {
+          return showCodeLine(JSON.stringify(oldV, null, 2).split('\n'), 'red', '-').data;
+        } else if (newV) {
+          return showCodeLine(JSON.stringify(newV, null, 2).split('\n'), 'green', '+').data;
+        }
+      }
+    }
+  </script>
+
+</head>
+
+<body>
+  <h1>Swagger更新检测报告</h1>
+  <div class="reportSummary">
+    <div>
+      
+      <p>
+        <span>Swagger地址：</span>
+        <a href="http://10.18.19.126:22700/swagger-ui.html" target="_blank">
+          http://10.18.19.126:22700/swagger-ui.html
+        </a>
+      </p>
+      
+    </div>
+  </div>
+  <ol class="controller">
+    
+    <li>
+      <div>Swagger文档更新：</div>
+      <ul>
+        
+        <li>
+          
+          <p>文档版本：由【
+            2.0 】版本升级为【
+            2.1 】版本</p>
+          
+          
+        </li>
+        
+        <li>
+          
+          
+          <p>API根路径：由【
+            / 】更新至【
+            /api 】</p>
+          
+        </li>
+        
+      </ul>
+    </li>
+    
+    
+    <li>
+      <div>
+        <p class="controller">
+          
+          <a href="http://10.18.19.126:22700/swagger-ui.html#!/health-controller">
+            health-controller
+            <span>
+              应用检测
+            </span>
+          </a>
+          
+        </p>
+        <ul>
+          
+          
+          <li>
+            <span class="type remove">删除</span>
+            <span class="detail remove">
+              GET /checkhealth 应用检测
+            </span>
+          </li>
+          
+          <li>
+            <span class="type add">新增</span>
+            
+            <a class="detail link add" href="http://10.18.19.126:22700/swagger-ui.html#!/health-controller/healthCheckUsingGET">
+              <span>
+                GET /health-check 应用检测
+              </span>
+            </a>
+            
+          </li>
+          
+        </ul>
+      </div>
+    </li>
+    
+    <li>
+      <div>
+        <p class="controller">
+          
+          <a href="http://10.18.19.126:22700/swagger-ui.html#!/InternalLoanAppConfigController">
+            InternalLoanAppConfigController
+            <span>
+              产品配置内部接口
+            </span>
+          </a>
+          
+        </p>
+        <ul>
+          
+          <li>
+            更新描述信息：由
+            【
+            产品配置内部接口 】更新至
+            【
+            内部接口-产品配置 】
+          </li>
+          
+          
+          <li>
+            <span class="type remove">删除</span>
+            <span class="detail remove">
+              GET /internal/product-initialization-configs/{productCode}/{type} 查询产品初始化字段配置
+            </span>
+          </li>
+          
+          <li>
+            <span class="type add">新增</span>
+            
+            <a class="detail link add" href="http://10.18.19.126:22700/swagger-ui.html#!/InternalLoanAppConfigController/getProductInitializationConfigsUsingGET">
+              <span>
+                POST /internal/product-initialization-configs/{productCode}/{type} 查询产品初始化字段配置
+              </span>
+            </a>
+            
+          </li>
+          
+          <li>
+            <span class="type update">更新</span>
+            
+            <a class="link detail update" href="http://10.18.19.126:22700/swagger-ui.html#!/InternalLoanAppConfigController/updateProductInitializationConfigsUsingPUT">
+              <span>
+                PUT /internal/product-initialization-configs/{productCode}/{type} 产品初始化字段配置-更新
+              </span>
+            </a>
+            
+            <ul>
+              
+              <li>
+                <p>接口变动：</p>
+                <ul>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新【
+                        接口描述信息 】：</span>
+                      <span>由【
+                        更新产品初始化字段配置 】更新至【
+                        产品初始化字段配置-更新 】
+                      </span>
+                    </div>
+                  </li>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新【
+                        接口介绍信息 】：</span>
+                      <span>由【
+                        Issue History: 】更新至【
+                        Issue History: ISSUE-15 】
+                      </span>
+                    </div>
+                  </li>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新【
+                        请求参数格式 】：</span>
+                      <span>由【
+                        application/json 】更新至【
+                        application/html 】
+                      </span>
+                    </div>
+                  </li>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新【
+                        请求响应格式 】：</span>
+                      <span>由【
+                        */* 】更新至【
+                        */html 】
+                      </span>
+                    </div>
+                  </li>
+                  
+                </ul>
+              </li>
+              
+              <li>
+                <p>请求参数变动：</p>
+                <ul>
+                  
+                  <li>
+                    <div class="add">
+                      
+                      <span class="title">新增&nbsp;
+                        选填参数【 Auth 】</span><span>
+                        JWT令牌，参数位置为【 header 】，类型为【 string 】
+                        
+                    </div>
+                  </li>
+                  
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新【
+                        productCode参数位置 】：
+                      </span>
+                      
+                      <span>由【
+                        path 】更新至【
+                        header 】</span>
+                      
+                    </div>
+                  </li>
+                  
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新【
+                        productCode参数描述 】：
+                      </span>
+                      
+                      <span>由【
+                        productCode 】更新至【
+                        Product Code 】</span>
+                      
+                    </div>
+                  </li>
+                  
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新【
+                        productCode必填 】：
+                      </span>
+                      
+                      <span>由【
+                        true 】更新至【
+                        false 】</span>
+                      
+                    </div>
+                  </li>
+                  
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新【
+                        productCode参数类型 】：
+                      </span>
+                      
+                      <span>由【
+                        string 】更新至【
+                        number 】</span>
+                      
+                    </div>
+                  </li>
+                  
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新【
+                        type参数枚举值 】：
+                      </span>
+                      
+                      <pre class="diff"><code><script>document.write(outDiffMessage(
+                          JSON.parse('["FIXED","DYNAMIC"]'),
+                          JSON.parse('["DYNAMIC"]'),
+                        ));
+                      </script></code></pre>
+                      
+                    </div>
+                  </li>
+                  
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新【
+                        body参数数据格式 】：
+                      </span>
+                      
+                      <pre class="diff"><code><script>document.write(outDiffMessage(
+                          JSON.parse('{"type":"object"}'),
+                          JSON.parse('{"type":"string"}'),
+                        ));
+                      </script></code></pre>
+                      
+                    </div>
+                  </li>
+                  
+                  
+                  <li>
+                    <div class="remove">
+                      
+                        <span class="title">删除&nbsp;
+                          选填参数【 Authorization 】JWT令牌：</span>
+                        <span>
+                          参数位置为【 header 】，类型为【 string 】</span>
+                        
+                    </div>
+                  </li>
+                  
+                  
+                </ul>
+              </li>
+              
+              <li>
+                <p>响应数据结构变动：</p>
+                <ul>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新&nbsp;响应状态【
+                        200 】</span>
+                      
+                      <p>具体改动为：</p>
+                      <div>
+                        <pre class="diff"><code><script>document.write(diffSchema(
+                            JSON.parse('{"description":"OK"}'),
+                            JSON.parse('{"description":"OK","schema":{"$ref":"#/definitions/LoanApplicationRequestV3"}}')
+                          ));
+                        </script></code></pre>
+                      </div>
+                    </div>
+                  </li>
+                  
+                    </div>
+                  </li>
+                </ul>
+              </li>
+              
+
+            </ul>
+
+          </li>
+          
+          <li>
+            <span class="type add">新增</span>
+            
+            <a class="detail link add" href="http://10.18.19.126:22700/swagger-ui.html#!/InternalLoanAppConfigController/createLoanApplicationV3UsingPOST">
+              <span>
+                POST /v3.1/borrowers/{borrowerId}/applications 创建一笔新的贷款申请, 调用loanApp接口 /v3/apps
+              </span>
+            </a>
+            
+          </li>
+          
+          <li>
+            <span class="type update">更新</span>
+            
+            <a class="link detail update" href="http://10.18.19.126:22700/swagger-ui.html#!/InternalLoanAppConfigController/createLoanApplicationV3UsingPOST">
+              <span>
+                POST /v3.1/borrowers/{borrowerId}/applications 创建一笔新的贷款申请, 调用loanApp接口 /v3/apps
+              </span>
+            </a>
+            
+            <ul>
+              
+              <li>
+                <p>响应数据结构变动：</p>
+                <ul>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新&nbsp;响应状态【
+                        201 】</span>
+                      
+                      <p>具体改动为：</p>
+                      <div>
+                        <pre class="diff"><code><script>document.write(diffSchema(
+                            JSON.parse('{"description":"Created","schema":{"$ref":"#/definitions/申请贷款响应信息"}}'),
+                            JSON.parse('{"description":"Created","schema":{"$ref":"#/definitions/签订阶段性协议请求"}}')
+                          ));
+                        </script></code></pre>
+                      </div>
+                    </div>
+                  </li>
+                  
+                  <li>
+                    <div class="add">
+                      <span class="title">
+                        新增&nbsp;响应状态【
+                        304 】</span>
+                      
+                      <span>，描述信息为：</span>【
+                      Move 】
+                      
+                      
+                      <p>详情为：</p>
+                      <div>
+                        <pre class="diff"><code><script>document.write(showCodeLine(
+                            JSON.stringify(JSON.parse('{"description":"Move"}'), null, 2).split('\n'),
+                            'green', '+'
+                          ).data);
+                        </script></code></pre>
+                      </div>
+                      
+                    </div>
+                  </li>
+                  
+                  <li>
+                    <div class="remove"><span class="title">删除&nbsp;响应状态【
+                        403 】</span>
+                      
+                      <span>，原描述信息为：</span>
+                      【
+                      Forbidden 】
+                      
+                      
+                      <p>删除详情为：</p>
+                      <div>
+                        <pre class="diff"><code><script>document.write(showCodeLine(
+                            JSON.stringify(JSON.parse('{"description":"Forbidden"}'), null, 2).split('\n'),
+                            'red', '-'
+                          ).data);
+                        </script></code></pre>
+                      </div>
+                      
+                    </div>
+                  </li>
+                  
+                  <li>
+                    <div class="remove"><span class="title">删除&nbsp;响应状态【
+                        404 】</span>
+                      
+                      <span>，原描述信息为：</span>
+                      【
+                      Not Found 】
+                      
+                      
+                      <p>删除详情为：</p>
+                      <div>
+                        <pre class="diff"><code><script>document.write(showCodeLine(
+                            JSON.stringify(JSON.parse('{"description":"Not Found"}'), null, 2).split('\n'),
+                            'red', '-'
+                          ).data);
+                        </script></code></pre>
+                      </div>
+                      
+                    </div>
+                  </li>
+                  
+                    </div>
+                  </li>
+                </ul>
+              </li>
+              
+
+            </ul>
+
+          </li>
+          
+        </ul>
+      </div>
+    </li>
+    
+    <li>
+      <div>
+        <p class="controller">
+          
+          <a href="http://10.18.19.126:22700/swagger-ui.html#!/LoanApplicationController">
+            LoanApplicationController
+            <span>
+              贷款申请相关
+            </span>
+          </a>
+          
+        </p>
+        <ul>
+          
+          
+          <li>
+            <span class="type remove">删除</span>
+            <span class="detail remove">
+              POST /v3.1/borrowers/{borrowerId}/applications 创建一笔新的贷款申请, 调用loanApp接口 /v3/apps
+            </span>
+          </li>
+          
+          <li>
+            <span class="type update">更新</span>
+            
+            <a class="link detail update" href="http://10.18.19.126:22700/swagger-ui.html#!/LoanApplicationController/updateApplicationConfigInfoUsingPUT_1">
+              <span>
+                PUT /v3/borrowers/{borrowerId}/applications/{applicationId}/configs 借款config信息（SchemaBased 信息）修改
+              </span>
+            </a>
+            
+            <ul>
+              
+              <li>
+                <p>请求参数变动：</p>
+                <ul>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">由于【
+                        #/definitions/借款申请配置相关信息 】存在更新</span><span>，导致参数
+                        <span style="color:red; font-weight: bold">
+                          loanAppConfig</span>数据结构发生变化</span>
+                      <div>
+                        <pre class="diff"><code><script>document.write(diffSchema(
+                            JSON.parse('{"type":"object","properties":{"app":{"$ref":"#/definitions/App"},"applicantBorrowerId":{"type":"integer","format":"int64","description":"企业法人用户编号"},"company":{"$ref":"#/definitions/企业信息:LoanAppConfigBo.Company"},"companyBorrowerId":{"type":"integer","format":"int64","description":"企业用户编号"},"finance":{"$ref":"#/definitions/财务信息:LoanAppConfigBo.finance"},"productCode":{"type":"string","description":"产品类型"},"shareholder":{"type":"array","items":{"$ref":"#/definitions/股东信息"}},"user":{"$ref":"#/definitions/借款主体信息： LoanAppConfigBo.User"}}}'),
+                            JSON.parse('{"type":"object","properties":{"app":{"$ref":"#/definitions/App"},"applicantBorrowerId":{"type":"string","format":"string","description":"企业法人用户编号"},"company":{"$ref":"#/definitions/企业信息:LoanAppConfigBo.Company"},"companyBorrowerId":{"type":"integer","format":"int64","description":"企业用户编号"},"finance":{"$ref":"#/definitions/财务信息:LoanAppConfigBo.finance"},"productCode":{"type":"string","description":"产品类型"},"shareholder":{"type":"array","items":{"$ref":"#/definitions/股东信息"}},"user":{"$ref":"#/definitions/借款主体信息： LoanAppConfigBo.User"}}}')
+                          ));
+                        </script></code></pre>
+                      </div>
+                    </div>
+                  </li>
+                  
+                  
+                </ul>
+              </li>
+              
+
+            </ul>
+
+          </li>
+          
+        </ul>
+      </div>
+    </li>
+    
+    <li>
+      <div>
+        <p class="controller">
+          
+          <a href="http://10.18.19.126:22700/swagger-ui.html#!/BankStatementAuthorizationController">
+            BankStatementAuthorizationController
+            <span>
+              银行流水授权
+            </span>
+          </a>
+          
+        </p>
+        <ul>
+          
+          
+          <li>
+            <span class="type update">更新</span>
+            
+            <a class="link detail update" href="http://10.18.19.126:22700/swagger-ui.html#!/BankStatementAuthorizationController/doAuthUsingPOST">
+              <span>
+                POST /v3/authorizations/bank-statement/support-banks/{organizationId}/auth 执行银行流水授权操作
+              </span>
+            </a>
+            
+            <ul>
+              
+              <li>
+                <p>请求参数变动：</p>
+                <ul>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新【
+                        authRequest参数数据格式 】：
+                      </span>
+                      
+                      <pre class="diff"><code><script>document.write(outDiffMessage(
+                          JSON.parse('{"$ref":"#/definitions/BankStatementAuthRequest"}'),
+                          JSON.parse('{"$ref":"#/definitions/BankStatementAccountBo"}'),
+                        ));
+                      </script></code></pre>
+                      
+                    </div>
+                  </li>
+                  
+                  
+                </ul>
+              </li>
+              
+              <li>
+                <p>响应数据结构变动：</p>
+                <ul>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新&nbsp;响应状态【
+                        200 】</span><span>，由于数据结构
+                        【
+                        #/definitions/BankStatementAuthTaskBo 】存在更新，导致此响应结构发生变化</span>
+                      <div>
+                        <pre class="diff"><code><script>document.write(diffSchema(
+                            JSON.parse('{"type":"object","properties":{"status":{"type":"string"},"taskInfo":{"$ref":"#/definitions/BankStatementAuthTask"}}}'),
+                            JSON.parse('{"type":"object","properties":{"status":{"type":"string"},"taskId":{"type":"string"},"taskWait":{"$ref":"#/definitions/BankStatementAuthWaitTask"},"taskInfo":{"$ref":"#/definitions/BankStatementAuthTask"}}}')
+                          ));
+                        </script></code></pre>
+                      </div>
+                      
+                    </div>
+                  </li>
+                </ul>
+              </li>
+              
+
+            </ul>
+
+          </li>
+          
+          <li>
+            <span class="type update">更新</span>
+            
+            <a class="link detail update" href="http://10.18.19.126:22700/swagger-ui.html#!/BankStatementAuthorizationController/getAuthTaskStatusUsingGET">
+              <span>
+                GET /v3/authorizations/bank-statement/support-banks/{organizationId}/auth/status 银行流水授权任务状态
+              </span>
+            </a>
+            
+            <ul>
+              
+              <li>
+                <p>响应数据结构变动：</p>
+                <ul>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新&nbsp;响应状态【
+                        200 】</span><span>，由于数据结构
+                        【
+                        #/definitions/BankStatementAuthTaskBo 】存在更新，导致此响应结构发生变化</span>
+                      <div>
+                        <pre class="diff"><code><script>document.write(diffSchema(
+                            JSON.parse('{"type":"object","properties":{"status":{"type":"string"},"taskInfo":{"$ref":"#/definitions/BankStatementAuthTask"}}}'),
+                            JSON.parse('{"type":"object","properties":{"status":{"type":"string"},"taskId":{"type":"string"},"taskWait":{"$ref":"#/definitions/BankStatementAuthWaitTask"},"taskInfo":{"$ref":"#/definitions/BankStatementAuthTask"}}}')
+                          ));
+                        </script></code></pre>
+                      </div>
+                      
+                    </div>
+                  </li>
+                </ul>
+              </li>
+              
+
+            </ul>
+
+          </li>
+          
+          <li>
+            <span class="type update">更新</span>
+            
+            <a class="link detail update" href="http://10.18.19.126:22700/swagger-ui.html#!/BankStatementAuthorizationController/postWaitTaskUsingPOST">
+              <span>
+                POST /v3/authorizations/bank-statement/support-banks/{organizationId}/auth/wait-task 继续操作银行流水授权任务
+              </span>
+            </a>
+            
+            <ul>
+              
+              <li>
+                <p>响应数据结构变动：</p>
+                <ul>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新&nbsp;响应状态【
+                        200 】</span><span>，由于数据结构
+                        【
+                        #/definitions/BankStatementAuthTaskBo 】存在更新，导致此响应结构发生变化</span>
+                      <div>
+                        <pre class="diff"><code><script>document.write(diffSchema(
+                            JSON.parse('{"type":"object","properties":{"status":{"type":"string"},"taskInfo":{"$ref":"#/definitions/BankStatementAuthTask"}}}'),
+                            JSON.parse('{"type":"object","properties":{"status":{"type":"string"},"taskId":{"type":"string"},"taskWait":{"$ref":"#/definitions/BankStatementAuthWaitTask"},"taskInfo":{"$ref":"#/definitions/BankStatementAuthTask"}}}')
+                          ));
+                        </script></code></pre>
+                      </div>
+                      
+                    </div>
+                  </li>
+                </ul>
+              </li>
+              
+
+            </ul>
+
+          </li>
+          
+        </ul>
+      </div>
+    </li>
+    
+    <li>
+      <div>
+        <p class="controller">
+          
+          <a href="http://10.18.19.126:22700/swagger-ui.html#!/SocialInsuranceAuthorizationController">
+            SocialInsuranceAuthorizationController
+            <span>
+              社保网站授权
+            </span>
+          </a>
+          
+        </p>
+        <ul>
+          
+          
+          <li>
+            <span class="type update">更新</span>
+            
+            <a class="link detail update" href="http://10.18.19.126:22700/swagger-ui.html#!/SocialInsuranceAuthorizationController/confirmAuthInfoUsingPOST_1">
+              <span>
+                POST /v3/authorizations/social-insurance/confirmations 提交社保授权
+              </span>
+            </a>
+            
+            <ul>
+              
+              <li>
+                <p>接口变动：</p>
+                <ul>
+                  
+                  <li>
+                    <div class="remove">
+                      <span class="title">删除【
+                        接口介绍信息 】
+                      </span>
+                      <span>，原值为：【
+                        Issue History: BOA-423 】
+                      </span>
+                    </div>
+                  </li>
+                  
+                </ul>
+              </li>
+              
+              <li>
+                <p>响应数据结构变动：</p>
+                <ul>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新&nbsp;响应状态【
+                        201 】</span>
+                      
+                      <p>具体改动为：</p>
+                      <div>
+                        <pre class="diff"><code><script>document.write(diffSchema(
+                            JSON.parse('{"description":"Created"}'),
+                            JSON.parse('{"description":"Created","hello":"world"}')
+                          ));
+                        </script></code></pre>
+                      </div>
+                    </div>
+                  </li>
+                  
+                    </div>
+                  </li>
+                </ul>
+              </li>
+              
+
+            </ul>
+
+          </li>
+          
+        </ul>
+      </div>
+    </li>
+    
+    <li>
+      <div>
+        <p class="controller">
+          
+          <a href="http://10.18.19.126:22700/swagger-ui.html#!/BorrowAccountController">
+            BorrowAccountController
+            <span>
+              用户账户信息
+            </span>
+          </a>
+          
+        </p>
+        <ul>
+          
+          
+          <li>
+            <span class="type update">更新</span>
+            
+            <a class="link detail update" href="http://10.18.19.126:22700/swagger-ui.html#!/BorrowAccountController/getBorrowerStatusInfoUsingGET">
+              <span>
+                GET /v3/borrow-accounts/{borrowerId} 得到borrower详细信息, 包括进件状态，贷款申请状态，额度测算状态
+              </span>
+            </a>
+            
+            <ul>
+              
+              <li>
+                <p>响应数据结构变动：</p>
+                <ul>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新&nbsp;响应状态【
+                        200 】</span><span>，由于数据结构
+                        【
+                        #/definitions/BorrowAccountBo 】存在更新，导致此响应结构发生变化</span>
+                      <div>
+                        <pre class="diff"><code><script>document.write(diffSchema(
+                            JSON.parse('{"type":"object","properties":{"borrowerLoanStatus":{"type":"string","description":"贷款账户状态","enum":["NEW","NORMAL","SETTLED","OVERDUE","UNKNOWN"]},"checkingProgress":{"type":"number","description":"总进度，百分比"},"creditEvaluationStatus":{"type":"string","description":"额度测算状态","enum":["NONE","EVALUATING","COMPLETED","INVALID"]},"loanRiverLeftQuota":{"type":"number","description":"剩余额度"},"loanRiverQuota":{"type":"number","description":"总额度"},"loanableProductNumber":{"type":"integer","format":"int32","description":"可贷款产品数"}}}'),
+                            JSON.parse('{"type":"object","properties":{"borrowerLoanStatus":{"type":"string","description":"贷款账户状态","enum":["NEW","SUBMITTED","SETTLED","OVERDUE","UNKNOWN"]},"checkingProgress":{"type":"number","description":"总进度，百分比"},"creditEvaluationStatus":{"type":"string","description":"额度测算状态","enum":["NONE","EVALUATING","COMPLETED","INVALID"]},"loanRiverLeftQuota":{"type":"number","description":"剩余额度"},"loanRiverQuota":{"type":"number","description":"总额度"},"loanableProductNumber":{"type":"integer","format":"int32","description":"可贷款产品数"}}}')
+                          ));
+                        </script></code></pre>
+                      </div>
+                      
+                    </div>
+                  </li>
+                </ul>
+              </li>
+              
+
+            </ul>
+
+          </li>
+          
+        </ul>
+      </div>
+    </li>
+    
+    <li>
+      <div>
+        <p class="controller">
+          
+          <a href="http://10.18.19.126:22700/swagger-ui.html#!/CommonLoanApplicationController">
+            CommonLoanApplicationController
+            <span>
+              借款主流程
+            </span>
+          </a>
+          
+        </p>
+        <ul>
+          
+          
+          <li>
+            <span class="type update">更新</span>
+            
+            <a class="link detail update" href="http://10.18.19.126:22700/swagger-ui.html#!/CommonLoanApplicationController/updateApplicationConfigInfoUsingPUT">
+              <span>
+                PUT /v4/borrowers/{borrowerId}/applications/{applicationId}/configs 借款config信息（SchemaBased 信息）修改
+              </span>
+            </a>
+            
+            <ul>
+              
+              <li>
+                <p>请求参数变动：</p>
+                <ul>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">由于【
+                        #/definitions/借款申请配置相关信息 】存在更新</span><span>，导致参数
+                        <span style="color:red; font-weight: bold">
+                          loanAppConfig</span>数据结构发生变化</span>
+                      <div>
+                        <pre class="diff"><code><script>document.write(diffSchema(
+                            JSON.parse('{"type":"object","properties":{"app":{"$ref":"#/definitions/App"},"applicantBorrowerId":{"type":"integer","format":"int64","description":"企业法人用户编号"},"company":{"$ref":"#/definitions/企业信息:LoanAppConfigBo.Company"},"companyBorrowerId":{"type":"integer","format":"int64","description":"企业用户编号"},"finance":{"$ref":"#/definitions/财务信息:LoanAppConfigBo.finance"},"productCode":{"type":"string","description":"产品类型"},"shareholder":{"type":"array","items":{"$ref":"#/definitions/股东信息"}},"user":{"$ref":"#/definitions/借款主体信息： LoanAppConfigBo.User"}}}'),
+                            JSON.parse('{"type":"object","properties":{"app":{"$ref":"#/definitions/App"},"applicantBorrowerId":{"type":"string","format":"string","description":"企业法人用户编号"},"company":{"$ref":"#/definitions/企业信息:LoanAppConfigBo.Company"},"companyBorrowerId":{"type":"integer","format":"int64","description":"企业用户编号"},"finance":{"$ref":"#/definitions/财务信息:LoanAppConfigBo.finance"},"productCode":{"type":"string","description":"产品类型"},"shareholder":{"type":"array","items":{"$ref":"#/definitions/股东信息"}},"user":{"$ref":"#/definitions/借款主体信息： LoanAppConfigBo.User"}}}')
+                          ));
+                        </script></code></pre>
+                      </div>
+                    </div>
+                  </li>
+                  
+                  
+                </ul>
+              </li>
+              
+
+            </ul>
+
+          </li>
+          
+        </ul>
+      </div>
+    </li>
+    
+  </ol>
+  <div class="reportSummary">
+    <div>
+      <p>
+        <a href="" target="_blank">
+          
+        </a>
+        <span>：Swagger配置</span>
+      </p>
+      <p>
+        <span>
+          2019年1月17日 19:04:57
+          ：本次比对时间
+        </span>
+      </p>
+    </div>
+  </div>
+</body>
+
+</html>

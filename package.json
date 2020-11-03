@@ -1,0 +1,53 @@
+{
+  "name": "swagger-diff-report",
+  "version": "2.0.5",
+  "description": "Generate Report when Swagger API Changed",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest",
+    "start": "node src/sample/demo.js",
+    "lint": "lint-staged",
+    "precommit": "lint-staged"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/cli": "^7.2.3",
+    "@babel/core": "^7.2.2",
+    "@babel/generator": "^7.2.2",
+    "@babel/node": "^7.2.2",
+    "@babel/plugin-proposal-class-properties": "^7.2.3",
+    "@babel/plugin-proposal-object-rest-spread": "^7.2.0",
+    "@babel/preset-env": "^7.2.3",
+    "@babel/template": "^7.2.2",
+    "@babel/types": "^7.2.2",
+    "babel-core": "^7.0.0-bridge.0",
+    "babel-jest": "^23.6.0",
+    "eslint": "^5.6.0",
+    "jest": "^23.6.0",
+    "lint-staged": "^7.0.5",
+    "prettier": "1.12.1",
+    "regenerator-runtime": "^0.13.1"
+  },
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "ejs": "^2.6.1",
+    "express": "^4.17.1",
+    "iconv-lite": "^0.5.0",
+    "log4js": "^3.0.6",
+    "node-notifier": "^5.3.0",
+    "opener": "^1.5.1",
+    "request": "^2.87.0",
+    "xxhashjs": "^0.2.2"
+  },
+  "lint-staged": {
+    "*.js": [
+      "prettier --trailing-comma es5 --single-quote --write",
+      "eslint --fix",
+      "git add"
+    ],
+    "yarn.lock": [
+      "git rm --cached"
+    ]
+  }
+}

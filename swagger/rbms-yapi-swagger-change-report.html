@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en" style="font-size: 50px;">
+
+<head>
+  <meta charset="UTF-8">
+  <title>
+    RBMS-DEMO接口变更报告
+  </title>
+  <style>
+    body {
+      font-size: 15px;
+      max-width: 1300px;
+      font-family: proxima-nova, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Wenquanyi Micro Hei, WenQuanYi Micro Hei Mono, WenQuanYi Zen Hei, Apple LiGothic Medium, SimHei, ST Heiti, WenQuanYi Zen Hei Sharp;
+      margin: 10px auto;
+      color: #666;
+      border: 1px solid #aaa;
+      padding: 10px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 18px;
+      color: #333;
+    }
+
+    pre.diff {
+      margin: 0;
+      padding: 0;
+    }
+
+    pre span.line {
+      position: absolute;
+      left: -2.5em;
+    }
+
+    pre span.row.red .indicator {
+      color: red;
+    }
+
+    pre span.row.green .indicator {
+      color: green;
+    }
+
+    pre span.row {
+      margin: 0;
+      padding: 0;
+      display: inline-block;
+      width: 100%;
+      position: relative;
+    }
+
+    pre {
+      background: #fff;
+      border: 1px solid;
+      font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, Courier, monospace;
+    }
+
+    code {
+      display: block;
+      background-color: #000;
+      padding: 0.5em 3em;
+    }
+
+    code,
+    pre {
+      color: #aaa;
+    }
+
+    code.add {
+      color: #FFF;
+    }
+
+    .title {
+      font-weight: bold;
+    }
+
+    div.update .title {
+      color: #0f6ab4;
+    }
+
+    div.remove .title {
+      color: red;
+    }
+
+    div.add .title {
+      color: green;
+    }
+
+    p.controller {
+      color: #000;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    p.controller a {
+      color: #000;
+    }
+
+    p.controller a span {
+      color: #999;
+    }
+
+    a {
+      text-decoration: none;
+      color: green;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    li {
+      margin: 15px 0;
+    }
+
+    span.type {
+      color: #FFF;
+      position: relative;
+      left: 5px;
+    }
+
+    span.type,
+    .detail {
+      padding: 4px;
+    }
+
+    span.type.add {
+      background-color: #10a54a;
+      border: 1px solid #10a54a;
+    }
+
+    span.type.update {
+      background-color: #0f6ab4;
+      border: 1px solid #0f6ab4;
+    }
+
+    span.type.remove {
+      background-color: red;
+      border: 1px solid red;
+    }
+
+    .detail.add {
+      background-color: #e7f6ec;
+      border: 1px solid #c3e8d1;
+      color: #000;
+    }
+
+    .detail.remove {
+      background-color: #f5d9d9;
+      border: 1px solid #f5d9d9;
+    }
+
+    .detail.update {
+      color: #000;
+      background-color: #e7f0f7;
+      border: 1px solid #c3d9ec;
+    }
+
+    .reportSummary {
+      text-align: right;
+      font-size: 13px;
+    }
+
+    .reportSummary,
+    .reportSummary a {
+      color: #999;
+    }
+
+    .reportSummary p {
+      margin: 5px;
+    }
+
+    .reportSummary>div {
+      display: inline-block
+    }
+  </style>
+  <!-- https://www.npmjs.com/package/diff -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/4.0.1/diff.min.js"></script>
+  <script>
+    function diffSchema(one, other) {
+
+      var diff = window.Diff.diffJson(one, other),
+        fragment = [];
+
+      var count = 1;
+      diff.forEach(function (part) {
+        var color = part.added ? 'green' :
+          part.removed ? 'red' : 'grey';
+        var indicator = part.added ? '+' :
+          part.removed ? '-' : '&nbsp;';
+        var datas = showCodeLine(part.value.split(/\n/), color, indicator, count);
+        count = datas.count;
+        fragment.push(datas.data);
+      });
+      return fragment.join('');
+    }
+    function showCodeLine(lines, color, indicator, count) {
+      if (!count) {
+        count = 1;
+      }
+      var decorateLines = [];
+      for (var i = 0, len = lines.length; i < len; i++) {
+        var data = '<span style="color:' + color + '">' + lines[i] + '</span>';
+        if (lines[i]) {
+          decorateLines.push('<span class="row ' + (color) + '"><span class="line">' + count++ + '</span><span class="indicator">' + indicator + '&nbsp;</span>' + data + "</span>")
+        } else {
+          decorateLines.push('')
+        }
+      }
+      return {
+        count: count,
+        data: decorateLines.join('\n')
+      };
+    }
+    function outDiffMessage(oldV, newV) {
+      var isOldArray = Object.prototype.toString.call(oldV) === '[object Array]';
+      var isOldObject = Object.prototype.toString.call(oldV) === '[object Object]';
+
+      var isNewArray = Object.prototype.toString.call(oldV) === '[object Array]';
+      var isNewObject = Object.prototype.toString.call(oldV) === '[object Object]';
+      if (isNewArray || isNewObject || isOldArray || isOldObject) {
+        if (oldV && newV) {
+          return diffSchema(oldV, newV);
+        } else if (oldV) {
+          return showCodeLine(JSON.stringify(oldV, null, 2).split('\n'), 'red', '-').data;
+        } else if (newV) {
+          return showCodeLine(JSON.stringify(newV, null, 2).split('\n'), 'green', '+').data;
+        }
+      }
+    }
+  </script>
+
+</head>
+
+<body>
+  <h1>
+    RBMS-DEMO接口变更报告
+  </h1>
+  <div class="reportSummary">
+    <div>
+      
+      <p>
+        <span>Swagger地址：</span>
+        <a href="https://rbms-demo.corp.hubenlv.com/swagger-ui.html" target="_blank">
+          https://rbms-demo.corp.hubenlv.com/swagger-ui.html
+        </a>
+      </p>
+      
+    </div>
+  </div>
+  <ol class="controller">
+    
+    
+    <li>
+      <div>
+        <p class="controller">
+          
+          <a href="https://rbms-demo.corp.hubenlv.com/swagger-ui.html#!/ApplicationController">
+            ApplicationController
+            <span>
+              借款申请信息查询
+            </span>
+          </a>
+          
+        </p>
+        <ul>
+          
+          
+          <li>
+            <span class="type update">更新</span>
+            
+            <a class="link detail update" href="https://rbms-demo.corp.hubenlv.com/swagger-ui.html#!/ApplicationController/getContractDownloadUrlUsingGET">
+              <span>
+                GET /v1/applications/{applicationId}/contracts/{contractId}/link 获取合同下载链接
+              </span>
+            </a>
+            
+            <ul>
+              
+              <li>
+                <p>请求参数变动：</p>
+                <ul>
+                  
+                  <li>
+                    <div class="update">
+                      <span class="title">更新【
+                        contractTenant参数描述 】：
+                      </span>
+                      
+                      <span>由【
+                        合同2租戶 】更新至【
+                        合同租戶 】</span>
+                      
+                    </div>
+                  </li>
+                  
+                  
+                </ul>
+              </li>
+              
+
+            </ul>
+
+          </li>
+          
+        </ul>
+      </div>
+    </li>
+    
+  </ol>
+  <div class="reportSummary">
+    <div>
+      <p>
+        <a href="https://rbms-demo.corp.hubenlv.com/v2/api-docs?group=rc-rbms-api" target="_blank">
+          https://rbms-demo.corp.hubenlv.com/v2/api-docs?group=rc-rbms-api
+        </a>
+        <span>：Swagger配置</span>
+      </p>
+      <p>
+        <span>
+          2019年8月2日 11:40:33
+          ：本次比对时间
+        </span>
+      </p>
+    </div>
+  </div>
+</body>
+
+</html>
